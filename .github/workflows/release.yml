@@ -1,0 +1,45 @@
+name: Create uber-jar and publish on Github Packages
+run-name: "Create uber-jar and publish on Github Packages for ${{ inputs.cloud_provider }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      cloud_provider:
+        description: 'Cloud provider to create the AIM uber jar'
+        required: true
+        type: choice
+        default: 'aws'
+        options:
+        - aws
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # This is required to create the release
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: 17
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+    - name: Create Uber jar
+      id: create_uber
+      run: ./gradlew :${{ github.event.inputs.cloud_provider }}:shadowJar 
+    - name: Retrieve uber jar version
+      run: echo "version=$(./gradlew -q :${{ github.event.inputs.cloud_provider }}:printVersion)" >> $GITHUB_OUTPUT
+      id: version   
+    - name: Create release and attach uber jar
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "${{ github.event.inputs.cloud_provider }}_${{ steps.version.outputs.version }}"
+        prerelease: true
+        title: "${{ github.event.inputs.cloud_provider }} uber jar ${{ steps.version.outputs.version }}"
+        files: ./${{ github.event.inputs.cloud_provider }}/build/libs/*-uber.jar
+  
