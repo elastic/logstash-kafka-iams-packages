@@ -35,11 +35,11 @@ jobs:
       run: echo "version=$(./gradlew -q :${{ github.event.inputs.cloud_provider }}:printVersion)" >> $GITHUB_OUTPUT
       id: version   
     - name: Create release and attach uber jar
-      uses: "marvinpinto/action-automatic-releases@latest"
+      uses: "softprops/action-gh-release@v2"
       with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "${{ github.event.inputs.cloud_provider }}_${{ steps.version.outputs.version }}"
+        token: "${{ secrets.GITHUB_TOKEN }}"
+        tag_name: "${{ github.event.inputs.cloud_provider }}_${{ steps.version.outputs.version }}"
         prerelease: true
-        title: "${{ github.event.inputs.cloud_provider }} uber jar ${{ steps.version.outputs.version }}"
+        name: "AWS uber jar ${{ steps.version.outputs.version }}"
         files: ./${{ github.event.inputs.cloud_provider }}/build/libs/*-uber.jar
   
