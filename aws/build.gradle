@@ -1,5 +1,3 @@
-import java.util.stream.Collectors
-
 /*
  * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
  * or more contributor license agreements. See the NOTICE file distributed with
@@ -18,6 +16,8 @@ import java.util.stream.Collectors
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import java.util.stream.Collectors
 
 plugins {
     id 'java'
@@ -64,4 +64,83 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
     // insert in the uber jar but not relocate packages that are pretty stable across Logstash code base:
     // - io.netty
     // - org.slf4j
+}
+
+
+tasks.register('dependenciesList') {
+    description "Prints the list of all dependencies, included also the transitive"
+    doLast {
+        def selectedDeps = project.configurations.runtimeClasspath.incoming.resolutionResult.allDependencies.collect { dep ->
+            "${dep.selected}"
+        }
+        selectedDeps.unique().sort().each { println it }
+    }
+}
+
+tasks.register("globalNotice") {
+    description "Squash notices and licenses for all bundled dependencies"
+    dependsOn [extractLicensesFromDependencies, concatenateLicenseReports]
+}
+
+tasks.register("concatenateLicenseReports") {
+    description "Create a single notice file with all dependencies licenses"
+    doLast {
+        def uberProjectNoticeFile = new File("$project.rootDir/NOTICE.txt")
+
+        File noticeFile = project.layout.buildDirectory.file("NOTICE.txt").get().asFile
+        noticeFile.write(uberProjectNoticeFile.text)
+
+        // copy all transitive dependencies NOTICE and LICENSE
+        project.fileTree(project.layout.projectDirectory) {
+            include("licenses/**/LICENSE.txt")
+            include("licenses/**/NOTICE.txt")
+        }.forEach { licenseFile ->
+            String fileContentType = licenseFile.name == 'LICENSE.txt' ? 'license' : 'notice'
+            println "File: ${licenseFile}, licenseFile.parentFile: ${licenseFile.parentFile.name}"
+            noticeFile.append("\n\n======================= ${licenseFile.parentFile.name} ${fileContentType} =======================\n\n")
+            noticeFile.append(licenseFile.text)
+        }
+    }
+}
+
+tasks.register("checkLicenses") {
+    description "Verifies that every dependency has at least the license"
+    doLast {
+        Directory licensesDir = project.layout.projectDirectory.dir("licenses")
+        def result = Arrays.stream(licensesDir.asFile.listFiles())
+                .filter {file -> file.directory }
+                .filter {directory -> directory.list().toList().empty }
+                .map { directory -> directory.toPath().fileName }
+                .collect(Collectors.toList())
+        if (!result.isEmpty()) {
+            println "Empty folders that needs LICENSE.txt and NOTICE.txt: ${result}"
+            throw new GradleException("found artifacts without licenses")
+        }
+    }
+}
+
+tasks.register("extractLicensesFromDependencies") {
+    description "Extracts license and notice from each dependency"
+    doLast {
+        String vendorPathPrefix = "licenses/"
+        project.configurations.runtimeClasspath.incoming.files.files.each { File f ->
+
+            def artifactName = f.name.substring(0, f.name.lastIndexOf('-'))
+
+            def artifactLicenseFolder = mkdir(vendorPathPrefix + artifactName)
+            project.copy {
+                from(zipTree(f).matching({
+                    include "META-INF/NOTICE.txt"
+                    include "META-INF/LICENSE.txt"
+                }))
+                // flatten the files out of META-INF
+                eachFile {
+                    path = name
+                }
+                // avoid to create empty META-INF
+                includeEmptyDirs = false
+                into(artifactLicenseFolder)
+            }
+        }
+    }
 }
