@@ -50,6 +50,7 @@ tasks.register('printVersion') {
 }
 
 tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+    dependsOn globalNotice
     archiveBaseName = 'aws-msk-iam-auth'
     archiveClassifier = 'uber'
 
@@ -64,11 +65,26 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
     // insert in the uber jar but not relocate packages that are pretty stable across Logstash code base:
     // - io.netty
     // - org.slf4j
+
+    // removes some notices and licenses that are squashed by shadowed dependencies
+    exclude 'META-INF/*NOTICE'
+    exclude 'META-INF/*NOTICE.txt'
+    exclude 'META-INF/*LICENSE'
+    exclude 'META-INF/*LICENSE.txt'
+
+    // include the notice file created concatenating the dependencies' licenses and notices by globalNotice task
+    from(project.layout.buildDirectory) {
+        include 'NOTICE.txt'
+    }
+
+    from(project.rootDir) {
+        include 'LICENSE.txt'
+    }
 }
 
 
 tasks.register('dependenciesList') {
-    description "Prints the list of all dependencies, included also the transitive"
+    description "Helper task - prints the list of all dependencies, includes also the transitive"
     doLast {
         def selectedDeps = project.configurations.runtimeClasspath.incoming.resolutionResult.allDependencies.collect { dep ->
             "${dep.selected}"
@@ -78,12 +94,8 @@ tasks.register('dependenciesList') {
 }
 
 tasks.register("globalNotice") {
-    description "Squash notices and licenses for all bundled dependencies"
-    dependsOn [extractLicensesFromDependencies, concatenateLicenseReports]
-}
-
-tasks.register("concatenateLicenseReports") {
     description "Create a single notice file with all dependencies licenses"
+    dependsOn checkLicenses
     doLast {
         def uberProjectNoticeFile = new File("$project.rootDir/NOTICE.txt")
 
@@ -96,7 +108,6 @@ tasks.register("concatenateLicenseReports") {
             include("licenses/**/NOTICE.txt")
         }.forEach { licenseFile ->
             String fileContentType = licenseFile.name == 'LICENSE.txt' ? 'license' : 'notice'
-            println "File: ${licenseFile}, licenseFile.parentFile: ${licenseFile.parentFile.name}"
             noticeFile.append("\n\n======================= ${licenseFile.parentFile.name} ${fileContentType} =======================\n\n")
             noticeFile.append(licenseFile.text)
         }
