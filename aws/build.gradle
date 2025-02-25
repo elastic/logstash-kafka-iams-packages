@@ -105,6 +105,7 @@ tasks.register("concatenateLicenseReports") {
 
 tasks.register("checkLicenses") {
     description "Verifies that every dependency has at least the license"
+    dependsOn extractLicensesFromDependencies
     doLast {
         Directory licensesDir = project.layout.projectDirectory.dir("licenses")
         def result = Arrays.stream(licensesDir.asFile.listFiles())
