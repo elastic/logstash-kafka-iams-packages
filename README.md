@@ -31,10 +31,26 @@ For example, to build AWS one:
 ./gradlew :aws:shadowJar
 ```
 
+## Notice creation
+The created uber jar contains the licenses and notices from all dependencies that it bundles.
+Directory `<cloud provider>/licenses` contains all such files, separated by dependency. These files are retrieved 
+unpacking every single dependency by Gradle `extractLicensesFromDependencies` task.
+
+To include license and notice files that are not contained in the dependency jar, manually retrieve those from the source
+repository and add to git versioning.
+
+Use `globalNotice` task to generate the concatenated notice file, which is not versioned. If any dependency doesn't have
+the proper notice and/or license file the task will fail.
+
 ## Utility commands
 To verify the dependency tree, to decide which transitive dependencies to include or not, run:
 ```
 ./gradlew -q :aws:dependencies --configuration runtimeClasspath
+```
+
+To get the flattened list of dependencies (runtimeClasspath) use:
+```
+./gradlew :aws:dependenciesList
 ```
 
 
