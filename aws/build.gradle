@@ -18,6 +18,8 @@
  */
 
 import java.util.stream.Collectors
+import java.nio.file.Files
+import java.nio.charset.StandardCharsets
 
 plugins {
     id 'java'
@@ -82,14 +84,36 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
     }
 }
 
+class DependencyReportItem {
+    String name
+    String version
 
-tasks.register('dependenciesList') {
-    description "Helper task - prints the list of all dependencies, includes also the transitive"
+    static DependencyReportItem fromGAV(String s) {
+        int versionDelimiter = s.lastIndexOf(":")
+        return new DependencyReportItem(name: s.substring(0, versionDelimiter), version: s.substring(versionDelimiter + 1))
+    }
+}
+
+tasks.register('generateDependenciesReport') {
+    description "Generate CSV report of all dependencies, includes also the transitive"
     doLast {
         def selectedDeps = project.configurations.runtimeClasspath.incoming.resolutionResult.allDependencies.collect { dep ->
             "${dep.selected}"
         }
-        selectedDeps.unique().sort().each { println it }
+
+        def depsReportDir = project.layout.buildDirectory.dir("reports/dependencies/").get().asFile
+        // create the intermediate dirs if not exists
+        depsReportDir.mkdirs()
+        File dependenciesReportFile = depsReportDir.toPath().resolve("dependencies.csv").toFile()
+
+        def csvReportPath = dependenciesReportFile.toPath()
+        Files.write(csvReportPath, "name,version\n".getBytes(StandardCharsets.UTF_8))
+        def reportLines = selectedDeps.unique().stream()
+                .sorted()
+                .map { DependencyReportItem.fromGAV(it) }
+                .map { dep -> "${dep.name},${dep.version}" }
+                .collect(Collectors.toList())
+       Files.write(csvReportPath, reportLines)
     }
 }
 
