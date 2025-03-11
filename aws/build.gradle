@@ -52,7 +52,7 @@ tasks.register('printVersion') {
 }
 
 tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-    dependsOn globalNotice
+    dependsOn = [globalNotice, updateVersionedDependenciesReport, generateDependenciesReport]
     archiveBaseName = 'aws-msk-iam-auth'
     archiveClassifier = 'uber'
 
@@ -82,6 +82,19 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
     from(project.rootDir) {
         include 'LICENSE.txt'
     }
+
+    from(project.layout.buildDirectory.dir("reports/dependencies/")) {
+        include 'dependencies.csv'
+    }
+}
+
+tasks.register('updateVersionedDependenciesReport', Copy) {
+    dependsOn generateDependenciesReport
+
+    from(project.layout.buildDirectory.dir("reports/dependencies/")) {
+        include 'dependencies.csv'
+    }
+    into project.layout.projectDirectory
 }
 
 class DependencyReportItem {
@@ -96,6 +109,8 @@ class DependencyReportItem {
 
 tasks.register('generateDependenciesReport') {
     description "Generate CSV report of all dependencies, includes also the transitive"
+    outputs.file(layout.buildDirectory.file("reports/dependencies/dependencies.csv"))
+
     doLast {
         def selectedDeps = project.configurations.runtimeClasspath.incoming.resolutionResult.allDependencies.collect { dep ->
             "${dep.selected}"
