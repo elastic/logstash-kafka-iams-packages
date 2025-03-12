@@ -12,6 +12,9 @@ on:
         options:
         - aws
 
+env:
+  CLOUD_PROVIDER: ${{ github.event.inputs.cloud_provider }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,13 +31,9 @@ jobs:
         java-version: 17
     - name: Create Uber jar
       id: create_uber
-      env:
-        CLOUD_PROVIDER: ${{ github.event.inputs.cloud_provider }}
-      run: ./gradlew :$CLOUD_PROVIDER:shadowJar 
+      run: ./gradlew :"$CLOUD_PROVIDER":shadowJar 
     - name: Retrieve uber jar version
-      env:
-        CLOUD_PROVIDER: ${{ github.event.inputs.cloud_provider }}
-      run: echo "version=$(./gradlew -q :$CLOUD_PROVIDER:printVersion)" >> $GITHUB_OUTPUT
+      run: echo "version=$(./gradlew -q :"$CLOUD_PROVIDER":printVersion)" >> $GITHUB_OUTPUT
       id: version   
     - name: Create release and attach uber jar
       uses: "softprops/action-gh-release@v2"
@@ -44,4 +43,3 @@ jobs:
         prerelease: true
         name: "AWS uber jar ${{ steps.version.outputs.version }}"
         files: ./${{ github.event.inputs.cloud_provider }}/build/libs/*-uber.jar
-  
