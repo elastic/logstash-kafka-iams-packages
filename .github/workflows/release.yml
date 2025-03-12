@@ -28,9 +28,13 @@ jobs:
         java-version: 17
     - name: Create Uber jar
       id: create_uber
-      run: ./gradlew :${{ github.event.inputs.cloud_provider }}:shadowJar 
+      env:
+        CLOUD_PROVIDER: ${{ github.event.inputs.cloud_provider }}
+      run: ./gradlew :$CLOUD_PROVIDER:shadowJar 
     - name: Retrieve uber jar version
-      run: echo "version=$(./gradlew -q :${{ github.event.inputs.cloud_provider }}:printVersion)" >> $GITHUB_OUTPUT
+      env:
+        CLOUD_PROVIDER: ${{ github.event.inputs.cloud_provider }}
+      run: echo "version=$(./gradlew -q :$CLOUD_PROVIDER:printVersion)" >> $GITHUB_OUTPUT
       id: version   
     - name: Create release and attach uber jar
       uses: "softprops/action-gh-release@v2"
