@@ -42,4 +42,4 @@ jobs:
         tag_name: "${{ github.event.inputs.cloud_provider }}_${{ steps.version.outputs.version }}"
         prerelease: true
         name: "AWS uber jar ${{ steps.version.outputs.version }}"
-        files: ./${{ github.event.inputs.cloud_provider }}/build/libs/*-uber.jar
+        files: ./"$CLOUD_PROVIDER"/build/libs/*-uber.jar
