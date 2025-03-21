@@ -18,6 +18,8 @@
  */
 
 import java.util.stream.Collectors
+import java.nio.file.Files
+import java.nio.charset.StandardCharsets
 
 plugins {
     id 'java'
@@ -27,6 +29,9 @@ plugins {
 group = 'org.logstash'
 // Version has to follow the same version of the AWS client library version
 version = '2.2.0'
+String dependenciesReportPath = "reports/dependencies/"
+String dependenciesReportFileName = 'dependencies.csv'
+String nettyVersion = "4.1.115.Final"
 
 repositories {
     // Use Maven Central for resolving dependencies.
@@ -35,6 +40,12 @@ repositories {
 
 dependencies {
     implementation "software.amazon.msk:aws-msk-iam-auth:${project.version}"
+
+    // used to force version of Netty transitive dependency
+    implementation "io.netty:netty-codec-http:${nettyVersion}"
+    implementation "io.netty:netty-codec-http2:${nettyVersion}"
+    implementation "io.netty:netty-transport-classes-epoll:${nettyVersion}"
+    implementation "io.netty:netty-common:${nettyVersion}"
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
@@ -50,7 +61,7 @@ tasks.register('printVersion') {
 }
 
 tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-    dependsOn globalNotice
+    dependsOn = [globalNotice, updateVersionedDependenciesReport, generateDependenciesReport]
     archiveBaseName = 'aws-msk-iam-auth'
     archiveClassifier = 'uber'
 
@@ -80,16 +91,52 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
     from(project.rootDir) {
         include 'LICENSE.txt'
     }
+
+    from(project.layout.buildDirectory.dir(dependenciesReportPath)) {
+        include dependenciesReportFileName
+    }
 }
 
+tasks.register('updateVersionedDependenciesReport', Copy) {
+    dependsOn generateDependenciesReport
 
-tasks.register('dependenciesList') {
-    description "Helper task - prints the list of all dependencies, includes also the transitive"
+    from(project.layout.buildDirectory.dir(dependenciesReportPath)) {
+        include dependenciesReportFileName
+    }
+    into project.layout.projectDirectory
+}
+
+class DependencyReportItem {
+    String name
+    String version
+
+    static DependencyReportItem fromGAV(String s) {
+        int versionDelimiter = s.lastIndexOf(":")
+        return new DependencyReportItem(name: s.substring(0, versionDelimiter), version: s.substring(versionDelimiter + 1))
+    }
+}
+
+tasks.register('generateDependenciesReport') {
+    description "Generate CSV report of all dependencies, includes also the transitive"
+
     doLast {
         def selectedDeps = project.configurations.runtimeClasspath.incoming.resolutionResult.allDependencies.collect { dep ->
             "${dep.selected}"
         }
-        selectedDeps.unique().sort().each { println it }
+
+        def depsReportDir = project.layout.buildDirectory.dir(dependenciesReportPath).get().asFile
+        // create the intermediate dirs if not exists
+        depsReportDir.mkdirs()
+        File dependenciesReportFile = depsReportDir.toPath().resolve(dependenciesReportFileName).toFile()
+
+        def csvReportPath = dependenciesReportFile.toPath()
+        Files.write(csvReportPath, "name,version\n".getBytes(StandardCharsets.UTF_8))
+        def reportLines = selectedDeps.unique().stream()
+                .sorted()
+                .map { DependencyReportItem.fromGAV(it) }
+                .map { dep -> "${dep.name},${dep.version}" }
+                .collect(Collectors.toList())
+       Files.write(csvReportPath, reportLines)
     }
 }
 

@@ -42,15 +42,14 @@ repository and add to git versioning.
 Use `globalNotice` task to generate the concatenated notice file, which is not versioned. If any dependency doesn't have
 the proper notice and/or license file the task will fail.
 
+## Dependencies report
+To create a CSV file which contains the full list of direct and transitive dependencies use the `generateDependenciesReport` task:
+```
+./gradlew clean :aws:generateDependenciesReport
+```
+
 ## Utility commands
 To verify the dependency tree, to decide which transitive dependencies to include or not, run:
 ```
 ./gradlew -q :aws:dependencies --configuration runtimeClasspath
 ```
-
-To get the flattened list of dependencies (runtimeClasspath) use:
-```
-./gradlew :aws:dependenciesList
-```
-
-
