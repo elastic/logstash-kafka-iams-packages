@@ -45,7 +45,7 @@ the proper notice and/or license file the task will fail.
 ## Dependencies report
 To create a CSV file which contains the full list of direct and transitive dependencies use the `generateDependenciesReport` task:
 ```
-./gradlew :aws:generateDependenciesReport
+./gradlew clean :aws:generateDependenciesReport
 ```
 
 ## Utility commands
