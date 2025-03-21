@@ -31,6 +31,7 @@ group = 'org.logstash'
 version = '2.2.0'
 String dependenciesReportPath = "reports/dependencies/"
 String dependenciesReportFileName = 'dependencies.csv'
+String nettyVersion = "4.1.115.Final"
 
 repositories {
     // Use Maven Central for resolving dependencies.
@@ -39,6 +40,10 @@ repositories {
 
 dependencies {
     implementation "software.amazon.msk:aws-msk-iam-auth:${project.version}"
+    implementation "io.netty:netty-codec-http:${nettyVersion}"
+    implementation "io.netty:netty-codec-http2:${nettyVersion}"
+    implementation "io.netty:netty-transport-classes-epoll:${nettyVersion}"
+    implementation "io.netty:netty-common:${nettyVersion}"
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
