@@ -40,6 +40,8 @@ repositories {
 
 dependencies {
     implementation "software.amazon.msk:aws-msk-iam-auth:${project.version}"
+
+    // used to force version of Netty transitive dependency
     implementation "io.netty:netty-codec-http:${nettyVersion}"
     implementation "io.netty:netty-codec-http2:${nettyVersion}"
     implementation "io.netty:netty-transport-classes-epoll:${nettyVersion}"
@@ -116,7 +118,6 @@ class DependencyReportItem {
 
 tasks.register('generateDependenciesReport') {
     description "Generate CSV report of all dependencies, includes also the transitive"
-    outputs.file(layout.buildDirectory.file(dependenciesReportPath + File.pathSeparatorChar + dependenciesReportFileName))
 
     doLast {
         def selectedDeps = project.configurations.runtimeClasspath.incoming.resolutionResult.allDependencies.collect { dep ->
