@@ -2,7 +2,7 @@
 Repackages cloud providers IAM clients as uber jars with the set of transitive dependencies and publish as Github release.
 
 ## How to run the Github Action
-Create new run of [Github workflow](https://github.com/elatic/logstash-kafka-iams-packages/actions/workflows/release.yml) and select the cloud provider from the drop down list.
+Create new run of [Github workflow](https://github.com/elastic/logstash-kafka-iams-packages/actions/workflows/release.yml) and select the cloud provider from the drop down list.
 
 ## Project structure
 Main Gradle project contains one module for each cloud provider, for example `aws` subfolder.
